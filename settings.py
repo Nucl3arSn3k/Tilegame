@@ -60,12 +60,7 @@ WEAPONS['shotgun'] = {'bullet_speed': 400,
                      'spread': 20,
                      'bullet_size': 'sm',
                      'bullet_count': 12}
-BULLET_SPEED = 500
-BULLET_LIFETIME = 1300
-BULLET_RATE = 150
-BULLET_DAMAGE = 10
-KICKBACK = 200
-GUN_SPREAD = 5
+
 
 # Items
 ITEM_IMAGES = {'health': 'health_pack.png'}
@@ -86,7 +81,8 @@ PLAYER_HIT_SOUNDS = ['pain/8.wav', 'pain/9.wav', 'pain/10.wav', 'pain/11.wav']
 ZOMBIE_MOAN_SOUNDS = ['brains2.wav', 'brains3.wav', 'zombie-roar-1.wav', 'zombie-roar-2.wav',
                       'zombie-roar-3.wav', 'zombie-roar-5.wav', 'zombie-roar-6.wav', 'zombie-roar-7.wav']
 ZOMBIE_HIT_SOUNDS = ['splat-15.wav']
-WEAPON_SOUNDS_GUN = ['sfx_weapon_singleshot2.wav']
+WEAPON_SOUNDS = {'pistol': ['pistol.wav'],
+                 'shotgun': ['shotgun.wav']}
 EFFECTS_SOUNDS = {'level_start': 'level_start.wav',
                   'health_up': 'health_pack.wav'}
 # Layers
