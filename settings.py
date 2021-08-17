@@ -55,15 +55,15 @@ WEAPONS['pistol'] = {'bullet_speed': 500,
 WEAPONS['shotgun'] = {'bullet_speed': 400, 
                      'bullet_lifetime': 500,
                      'rate': 900, 
-                     'damage': 5,
+                     'damage': 7,
                      'kickback': 300, 
                      'spread': 20,
                      'bullet_size': 'sm',
-                     'bullet_count': 12}
+                     'bullet_count': 14}
 
 
 # Items
-ITEM_IMAGES = {'health': 'health_pack.png'}
+ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png'}
 BOB_RANGE = 15
 BOB_SPEED = 0.4
 HEALTH_PACK_AMOUNT = 20
@@ -71,9 +71,14 @@ HEALTH_PACK_AMOUNT = 20
 # Effects
 MUZZEL_FLASHES = ['whitePuff15.png', 'whitePuff16.png', 'whitePuff17.png', 'whitePuff18.png']
 FLASH_DURATOIN = 40
+DAMAGE_ALPHA = [i for i in range(0, 255, 35)]
 SPLAT = 'splat green.png'
 SCREEN_FLASH_RANGE = 155
 FLASH_SPEED = 2
+NIGHT_COLOR = (20, 20, 20)
+LIGHT_RADIUS = (500, 500)
+LIGHT_MASK = "light_350_med.png"
+
 
 #Sounds
 BG_MUSIC = 'espionage.ogg'
@@ -84,7 +89,8 @@ ZOMBIE_HIT_SOUNDS = ['splat-15.wav']
 WEAPON_SOUNDS = {'pistol': ['pistol.wav'],
                  'shotgun': ['shotgun.wav']}
 EFFECTS_SOUNDS = {'level_start': 'level_start.wav',
-                  'health_up': 'health_pack.wav'}
+                  'health_up': 'health_pack.wav',
+                  'gun_pickup': 'gun_pickup.wav'}
 # Layers
 WALL_LAYER = 1
 PLAYER_LAYER = 2
@@ -100,3 +106,4 @@ MAP_2 = 'map2.txt'
 
 # Font List
 ZOMBIE_FONT = 'ZOMBIE.TTF'
+IMPACTED_FONT = 'Impacted2.0.ttf'

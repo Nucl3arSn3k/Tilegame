@@ -1,5 +1,7 @@
 import pygame as pg
 import pytweening as tween
+import pytmx
+from itertools import chain
 from random import uniform, choice, randint, random
 from settings import *
 from tilemap import collide_hit_rect
@@ -44,8 +46,9 @@ class Player(pg.sprite.Sprite):
         self.health = PLAYER_HEALTH
         self.player_hud_step = 0
         self.player_hud_dir = 1
-        self.weapon = 'shotgun'
+        self.weapon = 'pistol'
         self.tween = tween.easeInOutSine
+        self.damaged = False
     
 
     def get_keys(self):
@@ -62,6 +65,11 @@ class Player(pg.sprite.Sprite):
             self.vel = vec(-PLAYER_SPEED / 2, 0).rotate(-self.rot)
         if keys[pg.K_SPACE]:
             self.shoot()
+        if keys[pg.K_e]:
+            self.open_door()
+    
+    def open_door():
+        data = ''
 
     def shoot(self):
         now = pg.time.get_ticks()
@@ -72,25 +80,12 @@ class Player(pg.sprite.Sprite):
             self.vel = vec(-WEAPONS[self.weapon]['kickback'], 0).rotate(-self.rot)
             for i in range(WEAPONS[self.weapon]['bullet_count']):
                 spread = uniform(-WEAPONS[self.weapon]['spread'], WEAPONS[self.weapon]['spread'])
-                Bullet(self.game, pos, dir.rotate(spread))
+                Bullet(self.game, pos, dir.rotate(spread), WEAPONS[self.weapon]['damage'])
                 snd = choice(self.game.weapon_sounds[self.weapon])
                 if snd.get_num_channels() > 2:
                     snd.stop()
                 snd.play()
             MuzzleFlash(self.game, pos)
-
-    def update(self):
-        self.get_keys()
-        self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
-        self.image = pg.transform.rotate(self.game.player_img, self.rot)
-        self.rect = self.image.get_rect()
-        self.rect.center = self.pos
-        self.pos += self.vel * self.game.dt
-        self.hit_rect.centerx = self.pos.x
-        collide_with_walls(self, self.game.walls, 'x')
-        self.hit_rect.centery = self.pos.y
-        collide_with_walls(self, self.game.walls, 'y')
-        self.rect.center = self.hit_rect.center
 
     def add_health(self, amt):
         self.health += amt
@@ -105,8 +100,35 @@ class Player(pg.sprite.Sprite):
                 self.player_hud_dir *= -1
         return hurt_rect.fill((155, 0, 0, abs(fill)))
 
+    def hit(self):
+        self.damaged = True
+        self.damage_alpha = chain(DAMAGE_ALPHA * 2)
+
+    def update(self):
+        self.get_keys()
+        self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
+        self.image = pg.transform.rotate(self.game.player_img, self.rot)
+        if self.damaged:
+            try: 
+                self.image.fill((255, 255, 255, next(self.damage_alpha)), special_flags = pg.BLEND_RGBA_MULT)
+            except:
+                self.damaged = False
+
+            
+        self.rect = self.image.get_rect()
+        self.rect.center = self.pos
+        self.pos += self.vel * self.game.dt
+        self.hit_rect.centerx = self.pos.x
+        collide_with_walls(self, self.game.walls, 'x')
+        collide_with_walls(self, self.game.doors, 'x')
+        self.hit_rect.centery = self.pos.y
+        collide_with_walls(self, self.game.walls, 'y')
+        collide_with_walls(self, self.game.doors, 'y')
+        self.rect.center = self.hit_rect.center
+
 class Mob(pg.sprite.Sprite):
-    def __init__(self, game, x, y):
+    def __init__(self, game, x, y, id):
+        self.id = id
         self._layer = MOB_LAYER
         self.groups = game.all_sprites, game.mobs
         pg.sprite.Sprite.__init__(self, self.groups)
@@ -172,7 +194,7 @@ class Mob(pg.sprite.Sprite):
             pg.draw.rect(self.image, col, self.health_bar)
 
 class Bullet(pg.sprite.Sprite):
-    def __init__(self, game, pos, dir):
+    def __init__(self, game, pos, dir, damage):
         self._layer = BULLET_LAYER
         self.groups = game.all_sprites, game.bullets
         pg.sprite.Sprite.__init__(self, self.groups)
@@ -182,8 +204,9 @@ class Bullet(pg.sprite.Sprite):
         self.hit_rect = self.rect
         self.pos = vec(pos)
         self.rect.center = pos
-        self.vel = dir * WEAPONS[game.player.weapon]['bullet_speed']
+        self.vel = dir * WEAPONS[game.player.weapon]['bullet_speed'] * uniform(0.8, 1.2)
         self.spawn_time = pg.time.get_ticks()
+        self.damage = damage
     
     def update(self):
         self.pos += self.vel * self.game.dt
@@ -196,6 +219,18 @@ class Bullet(pg.sprite.Sprite):
 class Obstacle(pg.sprite.Sprite):
     def __init__(self, game, x, y, w, h):
         self.groups = game.walls
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.rect = pg.Rect(x, y, w, h)
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+
+class Door(Obstacle):
+    def __init__(self, game, x, y, w, h):
+        self.groups = game.doors
+        self.open = True
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
         self.rect = pg.Rect(x, y, w, h)
