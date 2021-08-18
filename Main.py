@@ -2,6 +2,8 @@ import pygame as pg
 import sys
 import csv
 from os import path
+
+from pygame import mouse
 from sprites import *
 from settings import *
 from tilemap import *
@@ -39,7 +41,7 @@ class Game:
         self.clock = pg.time.Clock()
         pg.key.set_repeat(500,100)
         self.load_data()
-        self.hovering = False
+        self.hovering = True
 
     def draw_text(self, text, font_name, size, color, x, y, align="nw"):
         font = pg.font.Font(font_name, size)
@@ -63,17 +65,6 @@ class Game:
             text_rect.midleft = (x, y)
         if align == "center":
             text_rect.center = (x, y)
-        self.screen.blit(text_surface, text_rect)
-    
-    def draw_button(self, text, font_name, size, color, x, y, align="nw"):
-        font = pg.font.Font(font_name, size)
-        text_surface = font.render(text, True, color)
-        text_rect = text_surface.get_rect()
-        if self.hovering:
-            color = RED
-        else:
-            color = YELLOW
-        text_rect.center = (x, y)
         self.screen.blit(text_surface, text_rect)
 
     def load_data(self):
@@ -241,8 +232,6 @@ class Game:
         with open(self.map_save, mode = 'w') as savefile:
             savefile = csv.writer(savefile, delimiter = ' ', quotechar = '"', quoting = csv.QUOTE_MINIMAL)
             savefile.writerow(self.data)
-        
-
 
     def draw_grid(self):
         for x in range(0, WIDTH, TILE_SIZE):
@@ -302,23 +291,48 @@ class Game:
                 if event.key == pg.K_n:
                     self.night = not self.night
             
+    def draw_button(self, text, font_name, size, width, height, color, x, y):
+        mouse_position = pg.mouse.get_pos()
+        font = pg.font.Font(font_name, size)
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+        text_rect.center = (x, y)
+        self.button_surface = pg.Surface((width, height))
+        if self.hovering:
+            color = BLUE
+        else:
+            color = DARK_GREEN
+        self.button_surface.fill(color)
+        self.hovering.copy() = False
+        self.button_rect = self.button_surface.get_rect()
+        self.button_rect.center = (x, y)
+        if self.button_rect.collidepoint(mouse_position):
+            self.hovering = True
+        self.screen.blit(self.button_surface, self.button_rect)
+        self.screen.blit(text_surface, text_rect)
+
     
     def show_start_screen(self):
-        mx, my = pg.mouse.get_pos()
-        self.screen.fill(BLACK)
-        self.draw_button("START", self.title_font, 100, RED, 
-                    WIDTH / 2, HEIGHT / 2, align="center")
-        button_1 = pg.Rect(100, 100, WIDTH / 6, HEIGHT / 6)
-        pg.draw.rect(self.screen, (255,0,0), button_1)
-        pg.display.flip()
+        waiting = True
+        while waiting:
+            self.clock.tick(FPS)
+            mouse_position = pg.mouse.get_pos()
+            print(mouse_position)
+            self.draw_button('START', self.hud_font, 100, 300, 125, RED, 
+                        WIDTH / 2, HEIGHT / 2)
+            self.draw_button('QUIT', self.hud_font, 100, 300, 125, RED, 
+                        WIDTH / 2, HEIGHT / 2 - 100)
+            print(self.hovering)
+            for event in pg.event.get():
+                if event.type == pg.MOUSEBUTTONUP and self.hovering: 
+                        waiting = False
+            pg.display.flip()
+    
         
-        if button_1.collidepoint((mx, my)):
-            self.hovering = True
-        self.wait_for_key()   
 
     def show_go_screen(self):
         self.screen.fill(BLACK)
-        self.draw_text("GAME OVER", self.title_font, 100, RED, 
+        self.draw_text("GAME OVER", self.title_font, 80, RED, 
                         WIDTH / 2, HEIGHT / 2, align="center")
         self.draw_text("PRESS R TO START", self.title_font, 75, WHITE, 
                         WIDTH / 2, HEIGHT * 3 / 4, align="center")
@@ -326,12 +340,14 @@ class Game:
         self.wait_for_key()
     
     def wait_for_key(self):
+        
         pg.event.wait()
         waiting = True
         keys = pg.key.get_pressed()
         while waiting:
             self.clock.tick(FPS)
-            print(self.hovering)
+            mouse_position = pg.mouse.get_pos()
+            print(mouse_position)
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     waiting = False
@@ -341,8 +357,8 @@ class Game:
 
 # create the game object
 g = Game()
-g.show_start_screen()
 while True:
+    g.show_start_screen()
     g.new()
     g.run()
     g.show_go_screen()
