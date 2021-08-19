@@ -106,36 +106,38 @@ class Game:
         self.effects_sounds = {}
         for type in EFFECTS_SOUNDS:
             self.effects_sounds[type] = pg.mixer.Sound(path.join(snd_folder, EFFECTS_SOUNDS[type]))
+            self.effects_sounds[type].set_volume(0.05)
         self.weapon_sounds = {}
         for weapon in WEAPON_SOUNDS:
             self.weapon_sounds[weapon] = []
             for snd in WEAPON_SOUNDS[weapon]:
                 s = pg.mixer.Sound(path.join(snd_folder, snd))
-                s.set_volume(0.1)
+                s.set_volume(0.05)
                 self.weapon_sounds[weapon].append(s)
         self.zombie_moan_sounds = []
         for snd in ZOMBIE_MOAN_SOUNDS:
             s = pg.mixer.Sound(path.join(snd_folder, snd))
-            s.set_volume(0.1)
+            s.set_volume(0.06)
             self.zombie_moan_sounds.append(s)
         self.player_hit_sounds = []
         for snd in PLAYER_HIT_SOUNDS:
             s = pg.mixer.Sound(path.join(snd_folder, snd))
-            s.set_volume(0.3)
+            s.set_volume(0.2)
             self.player_hit_sounds.append(s)
         self.zombie_hit_sounds = []
         for snd in ZOMBIE_HIT_SOUNDS:
             s = pg.mixer.Sound(path.join(snd_folder, snd))
-            s.set_volume(0.3)
+            s.set_volume(0.2)
             self.zombie_hit_sounds.append(s)
         pg.mixer.music.load(path.join(music_folder, BG_MUSIC))
-        pg.mixer.music.set_volume(0.6)
+        pg.mixer.music.set_volume(0.3)
             
 
 
     def new(self):
         # initialize all variables and do all the setup for the game
         self.all_sprites = pg.sprite.LayeredUpdates()
+        self.player = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.mobs = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
@@ -153,8 +155,6 @@ class Game:
                 Mob(self, obj_center.x, obj_center.y, tile_object.id)
             if tile_object.name == 'wall':
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
-            if tile_object.name == 'door':
-                Door(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
             if tile_object.name in ['health', 'shotgun']:
                 Item(self, obj_center, tile_object.name)
             
@@ -164,7 +164,7 @@ class Game:
         self.draw_debug = False
         self.paused = False
         self.night = False
-        self.effects_sounds['level_start'].set_volume(0.5)
+        self.effects_sounds['level_start'].set_volume(0.1)
         self.effects_sounds['level_start'].play()
   
     def run(self):
@@ -201,6 +201,8 @@ class Game:
                 hit.kill()
                 self.effects_sounds['gun_pickup'].play()
                 self.player.weapon = 'shotgun'
+                self.player.weapon_inventory.append(self.player.weapon)
+                print(self.player.weapon_inventory)
         #mob hits player
         hits = pg.sprite.spritecollide(self.player, self.mobs, False, collide_hit_rect)
         #if not self.player.damaged:
@@ -303,26 +305,25 @@ class Game:
         else:
             color = DARK_GREEN
         self.button_surface.fill(color)
-        self.hovering.copy() = False
+        self.hovering = False
         self.button_rect = self.button_surface.get_rect()
         self.button_rect.center = (x, y)
-        if self.button_rect.collidepoint(mouse_position):
-            self.hovering = True
+        self.hovering = self.check_hovering(self.button_rect, mouse_position)
         self.screen.blit(self.button_surface, self.button_rect)
         self.screen.blit(text_surface, text_rect)
 
+    def check_hovering(self, rect, mouse_pos):
+        if rect.collidepoint(mouse_pos):
+            return True
+        else: 
+            return False
     
     def show_start_screen(self):
         waiting = True
         while waiting:
             self.clock.tick(FPS)
-            mouse_position = pg.mouse.get_pos()
-            print(mouse_position)
             self.draw_button('START', self.hud_font, 100, 300, 125, RED, 
                         WIDTH / 2, HEIGHT / 2)
-            self.draw_button('QUIT', self.hud_font, 100, 300, 125, RED, 
-                        WIDTH / 2, HEIGHT / 2 - 100)
-            print(self.hovering)
             for event in pg.event.get():
                 if event.type == pg.MOUSEBUTTONUP and self.hovering: 
                         waiting = False
@@ -346,8 +347,6 @@ class Game:
         keys = pg.key.get_pressed()
         while waiting:
             self.clock.tick(FPS)
-            mouse_position = pg.mouse.get_pos()
-            print(mouse_position)
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     waiting = False
@@ -357,8 +356,8 @@ class Game:
 
 # create the game object
 g = Game()
+g.show_start_screen()
 while True:
-    g.show_start_screen()
     g.new()
     g.run()
     g.show_go_screen()

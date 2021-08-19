@@ -1,7 +1,6 @@
 import pygame as pg
 import pytweening as tween
-import pytmx
-from itertools import chain
+from itertools import chain, cycle
 from random import uniform, choice, randint, random
 from settings import *
 from tilemap import collide_hit_rect
@@ -30,7 +29,7 @@ def collide_with_walls(sprite, group, dir):
 class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
         self._layer = PLAYER_LAYER
-        self.groups = game.all_sprites
+        self.groups = game.all_sprites, game.player
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
         self.image = game.player_img
@@ -46,10 +45,13 @@ class Player(pg.sprite.Sprite):
         self.health = PLAYER_HEALTH
         self.player_hud_step = 0
         self.player_hud_dir = 1
+        self.idx = 0
         self.weapon = 'pistol'
+        self.weapon_inventory = []
+        self.weapon_inventory.append(self.weapon)
         self.tween = tween.easeInOutSine
         self.damaged = False
-    
+        self.equipped = False
 
     def get_keys(self):
         self.rot_speed = 0
@@ -65,11 +67,15 @@ class Player(pg.sprite.Sprite):
             self.vel = vec(-PLAYER_SPEED / 2, 0).rotate(-self.rot)
         if keys[pg.K_SPACE]:
             self.shoot()
-        if keys[pg.K_e]:
-            self.open_door()
-    
-    def open_door():
-        data = ''
+        
+        if keys[pg.K_TAB]:
+            if not self.equipped:
+                self.weapon = self.weapon_inventory[self.idx]
+                self.idx = (self.idx + 1) % len(self.weapon_inventory)
+                print(self.weapon)
+            self.equipped = True
+        else:
+            self.equipped = False
 
     def shoot(self):
         now = pg.time.get_ticks()
@@ -120,10 +126,8 @@ class Player(pg.sprite.Sprite):
         self.pos += self.vel * self.game.dt
         self.hit_rect.centerx = self.pos.x
         collide_with_walls(self, self.game.walls, 'x')
-        collide_with_walls(self, self.game.doors, 'x')
         self.hit_rect.centery = self.pos.y
         collide_with_walls(self, self.game.walls, 'y')
-        collide_with_walls(self, self.game.doors, 'y')
         self.rect.center = self.hit_rect.center
 
 class Mob(pg.sprite.Sprite):
@@ -227,21 +231,8 @@ class Obstacle(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-class Door(Obstacle):
-    def __init__(self, game, x, y, w, h):
-        self.groups = game.doors
-        self.open = True
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.rect = pg.Rect(x, y, w, h)
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-
 #OLD Wall
 class Wall(pg.sprite.Sprite):
-
     def __init__(self, game, x, y):
         self._layer = WALL_LAYER
         self.groups = game.all_sprites, game.walls
@@ -296,3 +287,30 @@ class Item(pg.sprite.Sprite):
             self.step = 0
             self.dir *= -1
 
+class Button(pg.sprite.Sprite):
+    def __init__(self, game, text, font_name, size, width, height, color, x, y):
+        self._layer = PLAYER_LAYER
+        self.groups = game.all_sprites
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.font = pg.font.Font(font_name, size)
+        self.text_surface = self.font.render(text, True, color)
+        self.text_rect = self.text_surface.get_rect()
+        self.text_rect.center = (x, y)
+        self.hovering = False
+        self.button_surface = pg.Surface((width, height))
+        self.button_surface.fill(color)
+        self.button_rect = self.button_surface.get_rect()
+        self.button_rect.center = (x, y)
+
+    def update(self):
+        mouse_position = pg.mouse.get_pos()
+        self.hovering = self.check_hovering(self.button_rect, mouse_position)
+        print(self.hovering)
+            
+
+    def check_hovering(self, rect, mouse_pos):
+        if rect.collidepoint(mouse_pos):
+            return True
+        else: 
+            return False

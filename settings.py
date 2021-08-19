@@ -33,7 +33,7 @@ BARREL_OFFSET = vec(30, 10)
 INVINCIBLE_TIMER = 2000
 
 # Zombie settings
-ZOMBIE_SPEED = [175, 150, 150, 125, 100]
+ZOMBIE_SPEED = [250, 175, 150, 150, 150, 125, 100, 50]
 ZOMBIE_IMAGE = 'zoimbie1_hold.png'
 ZOMBIE_HIT_RECT = pg.Rect(0, 0, 30, 30)
 ZOMBIE_HEALTH = 100
@@ -48,15 +48,15 @@ WEAPONS = {}
 WEAPONS['pistol'] = {'bullet_speed': 500, 
                      'bullet_lifetime': 1000,
                      'rate': 250, 
-                     'damage': 10,
+                     'damage': 13,
                      'kickback': 200, 
                      'spread': 5,
                      'bullet_size': 'lg',
                      'bullet_count': 1}
-WEAPONS['shotgun'] = {'bullet_speed': 400, 
+WEAPONS['shotgun'] = {'bullet_speed': 350, 
                      'bullet_lifetime': 500,
                      'rate': 900, 
-                     'damage': 7,
+                     'damage': 8,
                      'kickback': 300, 
                      'spread': 20,
                      'bullet_size': 'sm',
