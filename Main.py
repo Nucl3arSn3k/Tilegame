@@ -1,4 +1,5 @@
 import pygame as pg
+import pygame_gui as p_gui
 import sys
 import csv
 from os import path
@@ -37,6 +38,7 @@ class Game:
         pg.mixer.pre_init(44100, -16, 1, 2048)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        self.manager = p_gui.UIManager((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         pg.key.set_repeat(500,100)
@@ -148,7 +150,6 @@ class Game:
         self.mobs = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         self.items = pg.sprite.Group()
-        self.doors = pg.sprite.Group()
         self.map = TiledMap(path.join(self.map_folder, TILED_MAP_1))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
@@ -203,19 +204,12 @@ class Game:
                 hit.kill()
                 self.effects_sounds['health_up'].play()
                 self.player.add_health(HEALTH_PACK_AMOUNT)
-            # if hit.type == 'shotgun':
-            #     hit.kill()
-            #     self.effects_sounds['gun_pickup'].play()
-            #     self.player.weapon = 'shotgun'
-            #     self.player.weapon_inventory.append(self.player.weapon)
-            #     print(self.player.weapon_inventory)
             for weapons in WEAPONS:
                 if hit.type == weapons:
                     hit.kill()
                     self.effects_sounds['gun_pickup'].play()
                     self.player.weapon = weapons
                     self.player.weapon_inventory.append(self.player.weapon)
-                    print(self.player.weapon_inventory)
         #mob hits player
         hits = pg.sprite.spritecollide(self.player, self.mobs, False, collide_hit_rect)
         #if not self.player.damaged:
@@ -304,47 +298,32 @@ class Game:
                     self.paused = not self.paused 
                 if event.key == pg.K_n:
                     self.night = not self.night
-            
-    def draw_button(self, text, font_name, size, width, height, color, x, y):
-        self.mouse_position = pg.mouse.get_pos()
-        font = pg.font.Font(font_name, size)
-        text_surface = font.render(text, True, color)
-        text_rect = text_surface.get_rect()
-        text_rect.center = (x, y)
-        self.button_surface = pg.Surface((width, height))
-        self.button_surface.fill(DARK_GREEN)
-        self.button_rect_dark_green = self.button_surface.get_rect()
-        self.button_rect_dark_green.center = (x, y)
-        if self.check_hovering(self.button_rect_dark_green, self.mouse_position):
-            self.button_surface.fill(BLUE)
-            self.button_rect_blue = self.button_surface.get_rect()
-            self.button_rect_blue.center = (x, y)
-            self.screen.blit(self.button_surface, self.button_rect_blue)
-        else:
-            self.button_surface.fill(DARK_GREEN)
-            self.button_rect_dark_green = self.button_surface.get_rect()
-            self.button_rect_dark_green.center = (x, y)
-            self.screen.blit(self.button_surface, self.button_rect_dark_green)
-        
-        self.screen.blit(text_surface, text_rect)
-
-    def check_hovering(self, rect, mouse_pos):
-        if rect.collidepoint(mouse_pos):
-            return True
-        else: 
-            return False
     
     def show_start_screen(self):
         waiting = True
+        button_surf = pg.Surface((200, 100))
+        button_surf.fill(DARK_GREEN)
+        button_rect = pg.Rect(button_surf.get_rect())
+        button_rect.center = (WIDTH / 2, HEIGHT / 2)
+        hello_button = p_gui.elements.UIButton(relative_rect=button_rect,
+                                             text='START',
+                                             manager=self.manager)
         while waiting:
             self.clock.tick(FPS)
-            self.draw_button('START', self.hud_font, 100, 300, 125, RED, 
-                        WIDTH / 2, HEIGHT / 2)
-            self.draw_button('QUIT', self.hud_font, 100, 300, 125, RED, 
-                        WIDTH / 2, HEIGHT / 2 + 150)
+            # self.draw_button('START', self.hud_font, 100, 300, 125, RED, 
+            #             WIDTH / 2, HEIGHT / 2)
+            # self.draw_button('QUIT', self.hud_font, 100, 300, 125, RED, 
+            #             WIDTH / 2, HEIGHT / 2 + 150)
             for event in pg.event.get():
-                if event.type == pg.MOUSEBUTTONUP and self.check_hovering(self.button_rect_blue, self.mouse_position): 
-                        waiting = False
+                if event.type == pg.QUIT:
+                    self.quit()
+                if event.type == pg.USEREVENT:
+                    if event.user_type == p_gui.UI_BUTTON_PRESSED:
+                        if event.ui_element == hello_button:
+                            waiting = False
+                self.manager.process_events(event)
+            self.manager.update(FPS)
+            self.manager.draw_ui(self.screen)
             pg.display.flip()
     
         

@@ -1,6 +1,6 @@
 import pygame as pg
 import pytweening as tween
-from itertools import chain, cycle
+from itertools import chain
 from random import uniform, choice, randint, random
 from settings import *
 from tilemap import collide_hit_rect
@@ -246,7 +246,6 @@ class Wall(pg.sprite.Sprite):
         self.rect.y = y * TILE_SIZE
 
 class MuzzleFlash(pg.sprite.Sprite):
-
     def __init__(self, game, pos):
         self._layer = EFFECTS_LAYER
         self.groups = game.all_sprites
@@ -286,31 +285,3 @@ class Item(pg.sprite.Sprite):
         if self.step > BOB_RANGE:
             self.step = 0
             self.dir *= -1
-
-class Button(pg.sprite.Sprite):
-    def __init__(self, game, text, font_name, size, width, height, color, x, y):
-        self._layer = PLAYER_LAYER
-        self.groups = game.all_sprites
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.font = pg.font.Font(font_name, size)
-        self.text_surface = self.font.render(text, True, color)
-        self.text_rect = self.text_surface.get_rect()
-        self.text_rect.center = (x, y)
-        self.hovering = False
-        self.button_surface = pg.Surface((width, height))
-        self.button_surface.fill(color)
-        self.button_rect = self.button_surface.get_rect()
-        self.button_rect.center = (x, y)
-
-    def update(self):
-        mouse_position = pg.mouse.get_pos()
-        self.hovering = self.check_hovering(self.button_rect, mouse_position)
-        print(self.hovering)
-            
-
-    def check_hovering(self, rect, mouse_pos):
-        if rect.collidepoint(mouse_pos):
-            return True
-        else: 
-            return False
