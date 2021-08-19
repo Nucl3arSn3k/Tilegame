@@ -41,7 +41,6 @@ class Game:
         self.clock = pg.time.Clock()
         pg.key.set_repeat(500,100)
         self.load_data()
-        self.hovering = True
 
     def draw_text(self, text, font_name, size, color, x, y, align="nw"):
         font = pg.font.Font(font_name, size)
@@ -87,6 +86,7 @@ class Game:
         self.bullet_images = {}
         self.bullet_images['lg'] = pg.image.load(path.join(weapon_folder, BULLET_IMG)).convert_alpha()
         self.bullet_images['sm'] = pg.transform.scale(self.bullet_images['lg'], (10,10))
+        self.bullet_images['tn'] = pg.transform.scale(self.bullet_images['lg'], (5,5))
         self.zombie_img = pg.image.load(path.join(entity_folder, ZOMBIE_IMAGE)).convert_alpha()
         self.splat = pg.image.load(path.join(effects_folder, SPLAT)).convert_alpha()
         self.splat = pg.transform.scale(self.splat, (64, 64))
@@ -96,6 +96,12 @@ class Game:
         self.item_images = {}
         for item in ITEM_IMAGES:
             self.item_images[item] = pg.image.load(path.join(items_folder, ITEM_IMAGES[item])).convert_alpha()
+            try:
+                if self.item_images[item] == self.item_images['uzi']:
+                    self.item_images[item] = pg.transform.scale(self.item_images[item], (64,64))
+            except:
+                pass
+
         # Lighting effect
         self.fog = pg.Surface((WIDTH, HEIGHT))
         self.fog.fill(NIGHT_COLOR)
@@ -155,7 +161,7 @@ class Game:
                 Mob(self, obj_center.x, obj_center.y, tile_object.id)
             if tile_object.name == 'wall':
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
-            if tile_object.name in ['health', 'shotgun']:
+            if tile_object.name in ['health', 'shotgun', 'uzi']:
                 Item(self, obj_center, tile_object.name)
             
 
@@ -197,12 +203,19 @@ class Game:
                 hit.kill()
                 self.effects_sounds['health_up'].play()
                 self.player.add_health(HEALTH_PACK_AMOUNT)
-            if hit.type == 'shotgun':
-                hit.kill()
-                self.effects_sounds['gun_pickup'].play()
-                self.player.weapon = 'shotgun'
-                self.player.weapon_inventory.append(self.player.weapon)
-                print(self.player.weapon_inventory)
+            # if hit.type == 'shotgun':
+            #     hit.kill()
+            #     self.effects_sounds['gun_pickup'].play()
+            #     self.player.weapon = 'shotgun'
+            #     self.player.weapon_inventory.append(self.player.weapon)
+            #     print(self.player.weapon_inventory)
+            for weapons in WEAPONS:
+                if hit.type == weapons:
+                    hit.kill()
+                    self.effects_sounds['gun_pickup'].play()
+                    self.player.weapon = weapons
+                    self.player.weapon_inventory.append(self.player.weapon)
+                    print(self.player.weapon_inventory)
         #mob hits player
         hits = pg.sprite.spritecollide(self.player, self.mobs, False, collide_hit_rect)
         #if not self.player.damaged:
@@ -280,7 +293,6 @@ class Game:
         # catch all events here
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                print(self.data)
                 self.save_data()
                 self.quit()
             if event.type == pg.KEYDOWN:
@@ -294,22 +306,26 @@ class Game:
                     self.night = not self.night
             
     def draw_button(self, text, font_name, size, width, height, color, x, y):
-        mouse_position = pg.mouse.get_pos()
+        self.mouse_position = pg.mouse.get_pos()
         font = pg.font.Font(font_name, size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.center = (x, y)
         self.button_surface = pg.Surface((width, height))
-        if self.hovering:
-            color = BLUE
+        self.button_surface.fill(DARK_GREEN)
+        self.button_rect_dark_green = self.button_surface.get_rect()
+        self.button_rect_dark_green.center = (x, y)
+        if self.check_hovering(self.button_rect_dark_green, self.mouse_position):
+            self.button_surface.fill(BLUE)
+            self.button_rect_blue = self.button_surface.get_rect()
+            self.button_rect_blue.center = (x, y)
+            self.screen.blit(self.button_surface, self.button_rect_blue)
         else:
-            color = DARK_GREEN
-        self.button_surface.fill(color)
-        self.hovering = False
-        self.button_rect = self.button_surface.get_rect()
-        self.button_rect.center = (x, y)
-        self.hovering = self.check_hovering(self.button_rect, mouse_position)
-        self.screen.blit(self.button_surface, self.button_rect)
+            self.button_surface.fill(DARK_GREEN)
+            self.button_rect_dark_green = self.button_surface.get_rect()
+            self.button_rect_dark_green.center = (x, y)
+            self.screen.blit(self.button_surface, self.button_rect_dark_green)
+        
         self.screen.blit(text_surface, text_rect)
 
     def check_hovering(self, rect, mouse_pos):
@@ -324,8 +340,10 @@ class Game:
             self.clock.tick(FPS)
             self.draw_button('START', self.hud_font, 100, 300, 125, RED, 
                         WIDTH / 2, HEIGHT / 2)
+            self.draw_button('QUIT', self.hud_font, 100, 300, 125, RED, 
+                        WIDTH / 2, HEIGHT / 2 + 150)
             for event in pg.event.get():
-                if event.type == pg.MOUSEBUTTONUP and self.hovering: 
+                if event.type == pg.MOUSEBUTTONUP and self.check_hovering(self.button_rect_blue, self.mouse_position): 
                         waiting = False
             pg.display.flip()
     

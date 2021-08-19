@@ -61,10 +61,17 @@ WEAPONS['shotgun'] = {'bullet_speed': 350,
                      'spread': 20,
                      'bullet_size': 'sm',
                      'bullet_count': 14}
-
+WEAPONS['uzi'] = {'bullet_speed': 850, 
+                     'bullet_lifetime': 600,
+                     'rate': 80, 
+                     'damage': 8,
+                     'kickback': 100, 
+                     'spread': 8,
+                     'bullet_size': 'tn',
+                     'bullet_count': 1}
 
 # Items
-ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png'}
+ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png', 'uzi': 'obj_uzi.png'}
 BOB_RANGE = 15
 BOB_SPEED = 0.4
 HEALTH_PACK_AMOUNT = 20
@@ -88,7 +95,8 @@ ZOMBIE_MOAN_SOUNDS = ['brains2.wav', 'brains3.wav', 'zombie-roar-1.wav', 'zombie
                       'zombie-roar-3.wav', 'zombie-roar-5.wav', 'zombie-roar-6.wav', 'zombie-roar-7.wav']
 ZOMBIE_HIT_SOUNDS = ['splat-15.wav']
 WEAPON_SOUNDS = {'pistol': ['pistol.wav'],
-                 'shotgun': ['shotgun.wav']}
+                 'shotgun': ['shotgun.wav'],
+                 'uzi': ['pistol.wav']}
 EFFECTS_SOUNDS = {'level_start': 'level_start.wav',
                   'health_up': 'health_pack.wav',
                   'gun_pickup': 'gun_pickup.wav'}
