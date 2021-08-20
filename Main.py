@@ -3,8 +3,6 @@ import pygame_gui as p_gui
 import sys
 import csv
 from os import path
-
-from pygame import mouse
 from sprites import *
 from settings import *
 from tilemap import *
@@ -38,7 +36,7 @@ class Game:
         pg.mixer.pre_init(44100, -16, 1, 2048)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        self.manager = p_gui.UIManager((WIDTH, HEIGHT))
+        self.manager = p_gui.UIManager((WIDTH, HEIGHT), 'C:\\Users\\shado\\Documents\\Tutoring\\TileGame\\Tilegame\\res\\fonts\\theme.json')
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         pg.key.set_repeat(500,100)
@@ -88,7 +86,7 @@ class Game:
         self.bullet_images = {}
         self.bullet_images['lg'] = pg.image.load(path.join(weapon_folder, BULLET_IMG)).convert_alpha()
         self.bullet_images['sm'] = pg.transform.scale(self.bullet_images['lg'], (10,10))
-        self.bullet_images['tn'] = pg.transform.scale(self.bullet_images['lg'], (5,5))
+        self.bullet_images['tn'] = pg.transform.scale(self.bullet_images['lg'], (7,7))
         self.zombie_img = pg.image.load(path.join(entity_folder, ZOMBIE_IMAGE)).convert_alpha()
         self.splat = pg.image.load(path.join(effects_folder, SPLAT)).convert_alpha()
         self.splat = pg.transform.scale(self.splat, (64, 64))
@@ -100,7 +98,7 @@ class Game:
             self.item_images[item] = pg.image.load(path.join(items_folder, ITEM_IMAGES[item])).convert_alpha()
             try:
                 if self.item_images[item] == self.item_images['uzi']:
-                    self.item_images[item] = pg.transform.scale(self.item_images[item], (64,64))
+                    self.item_images[item] = pg.transform.scale(self.item_images[item], (54,48))
             except:
                 pass
 
@@ -150,6 +148,7 @@ class Game:
         self.mobs = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         self.items = pg.sprite.Group()
+        self.chest = pg.sprite.Group()
         self.map = TiledMap(path.join(self.map_folder, TILED_MAP_1))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
@@ -164,7 +163,8 @@ class Game:
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
             if tile_object.name in ['health', 'shotgun', 'uzi']:
                 Item(self, obj_center, tile_object.name)
-            
+            if tile_object.name == 'chest':
+                Chest(self, tile_object.x, tile_object.y, tile_object.id)
 
 
         self.camera = Camera(self.map.width, self.map.height)
@@ -300,27 +300,26 @@ class Game:
                     self.night = not self.night
     
     def show_start_screen(self):
-        waiting = True
+        start = True
         button_surf = pg.Surface((200, 100))
-        button_surf.fill(DARK_GREEN)
         button_rect = pg.Rect(button_surf.get_rect())
-        button_rect.center = (WIDTH / 2, HEIGHT / 2)
-        hello_button = p_gui.elements.UIButton(relative_rect=button_rect,
-                                             text='START',
-                                             manager=self.manager)
-        while waiting:
+        button_rect.center = (WIDTH / 2, HEIGHT / 2+ 200)
+        start_button = p_gui.elements.UIButton(relative_rect=button_rect, text='START', manager=self.manager)
+        button_surf = pg.Surface((150, 75))
+        button_rect = pg.Rect(button_surf.get_rect())
+        button_rect.center = (WIDTH / 2, HEIGHT / 2 + 300)
+        save_button = p_gui.elements.UIButton(relative_rect=button_rect, text='SAVE', manager=self.manager)
+        while start:
             self.clock.tick(FPS)
-            # self.draw_button('START', self.hud_font, 100, 300, 125, RED, 
-            #             WIDTH / 2, HEIGHT / 2)
-            # self.draw_button('QUIT', self.hud_font, 100, 300, 125, RED, 
-            #             WIDTH / 2, HEIGHT / 2 + 150)
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.quit()
                 if event.type == pg.USEREVENT:
                     if event.user_type == p_gui.UI_BUTTON_PRESSED:
-                        if event.ui_element == hello_button:
-                            waiting = False
+                        if event.ui_element == start_button:
+                                start = False
+                        if event.ui_element == save_button:
+                                start = False
                 self.manager.process_events(event)
             self.manager.update(FPS)
             self.manager.draw_ui(self.screen)

@@ -75,6 +75,7 @@ ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png', 'uzi':
 BOB_RANGE = 15
 BOB_SPEED = 0.4
 HEALTH_PACK_AMOUNT = 20
+CHEST_HIT_RECT = pg.Rect(0, 0, 60, 60)
 
 # Effects
 MUZZEL_FLASHES = ['whitePuff15.png', 'whitePuff16.png', 'whitePuff17.png', 'whitePuff18.png']

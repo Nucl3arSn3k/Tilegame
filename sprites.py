@@ -26,6 +26,10 @@ def collide_with_walls(sprite, group, dir):
             sprite.vel.y = 0
             sprite.hit_rect.centery = sprite.pos.y
 
+def check_vicinity(sprite, group):
+    return pg.sprite.spritecollide(sprite, group, False, collide_hit_rect)
+
+
 class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
         self._layer = PLAYER_LAYER
@@ -119,12 +123,14 @@ class Player(pg.sprite.Sprite):
                 self.image.fill((255, 255, 255, next(self.damage_alpha)), special_flags = pg.BLEND_RGBA_MULT)
             except:
                 self.damaged = False
-
+        if check_vicinity(self, self.game.chest):
+            self.health += 1
             
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
         self.pos += self.vel * self.game.dt
         self.hit_rect.centerx = self.pos.x
+        
         collide_with_walls(self, self.game.walls, 'x')
         self.hit_rect.centery = self.pos.y
         collide_with_walls(self, self.game.walls, 'y')
@@ -161,7 +167,11 @@ class Mob(pg.sprite.Sprite):
 
     def update(self):
         target_dist = self.target.pos - self.pos
-        if target_dist.length_squared() < DETECT_RADIUS**2:
+        if self.health == 100:
+            detect = DETECT_RADIUS
+        else:
+            detect = DETECT_RADIUS * 1.5
+        if target_dist.length_squared() < detect**2:
             if random() < 0.0018:
                 choice(self.game.zombie_moan_sounds).play()
             self.rot = target_dist.angle_to(vec(1,0))
@@ -231,20 +241,6 @@ class Obstacle(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-#OLD Wall
-class Wall(pg.sprite.Sprite):
-    def __init__(self, game, x, y):
-        self._layer = WALL_LAYER
-        self.groups = game.all_sprites, game.walls
-        pg.sprite.Sprite.__init__(self, self.groups)
-        self.game = game
-        self.image = game.dungeon_wall_img
-        self.rect = self.image.get_rect()
-        self.x = x
-        self.y = y
-        self.rect.x = x * TILE_SIZE
-        self.rect.y = y * TILE_SIZE
-
 class MuzzleFlash(pg.sprite.Sprite):
     def __init__(self, game, pos):
         self._layer = EFFECTS_LAYER
@@ -285,3 +281,33 @@ class Item(pg.sprite.Sprite):
         if self.step > BOB_RANGE:
             self.step = 0
             self.dir *= -1
+
+class Chest(Player):
+    def __init__(self, game, x, y, id):
+        self.groups = game.all_sprites, game.chest
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.id = id
+        self.game = game
+        self.image = game.zombie_img.copy()
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+        self.hit_rect = CHEST_HIT_RECT.copy()
+        self.hit_rect.center = self.rect.center
+    
+
+#OLD Wall
+class Wall(pg.sprite.Sprite):
+    def __init__(self, game, x, y):
+        self._layer = WALL_LAYER
+        self.groups = game.all_sprites, game.walls
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image = game.dungeon_wall_img
+        self.rect = self.image.get_rect()
+        self.x = x
+        self.y = y
+        self.rect.x = x * TILE_SIZE
+        self.rect.y = y * TILE_SIZE
