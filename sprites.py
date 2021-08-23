@@ -1,5 +1,6 @@
 import pygame as pg
 import pytweening as tween
+import time
 from itertools import chain
 from random import uniform, choice, randint, random
 from settings import *
@@ -33,7 +34,7 @@ def check_vicinity(sprite, group):
 class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
         self._layer = PLAYER_LAYER
-        self.groups = game.all_sprites, game.player
+        self.groups = game.all_sprites, game.player_group
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
         self.image = game.player_img
@@ -53,6 +54,9 @@ class Player(pg.sprite.Sprite):
         self.weapon = 'pistol'
         self.weapon_inventory = []
         self.weapon_inventory.append(self.weapon)
+        self.clip =  WEAPONS[self.weapon]['bullet_mag']
+        self.reload_time = 0
+        self.reload = False
         self.tween = tween.easeInOutSine
         self.damaged = False
         self.equipped = False
@@ -69,12 +73,13 @@ class Player(pg.sprite.Sprite):
             self.vel = vec(PLAYER_SPEED, 0).rotate(-self.rot)
         if keys[pg.K_DOWN] or keys[pg.K_s]:
             self.vel = vec(-PLAYER_SPEED / 2, 0).rotate(-self.rot)
-        if keys[pg.K_SPACE]:
+        if keys[pg.K_SPACE] and not self.reload:
             self.shoot()
         
         if keys[pg.K_TAB]:
             if not self.equipped:
                 self.weapon = self.weapon_inventory[self.idx]
+                self.clip = WEAPONS[self.weapon]['bullet_mag']
                 self.idx = (self.idx + 1) % len(self.weapon_inventory)
                 print(self.weapon)
             self.equipped = True
@@ -83,7 +88,11 @@ class Player(pg.sprite.Sprite):
 
     def shoot(self):
         now = pg.time.get_ticks()
+        if self.clip <= 1:
+            self.start = time.time()
         if now - self.last_shot > WEAPONS[self.weapon]['rate']:
+            self.clip -= 1
+            print(self.clip)
             self.last_shot = now
             dir = vec(1,0).rotate(-self.rot)
             pos = self.pos + BARREL_OFFSET.rotate(-self.rot)
@@ -116,6 +125,14 @@ class Player(pg.sprite.Sprite):
 
     def update(self):
         self.get_keys()
+        
+        if self.clip <= 0:
+            self.reload = True
+            print((time.time() - self.start))
+            if time.time() - self.start > WEAPONS[self.weapon]['reload']:
+                self.clip = WEAPONS[self.weapon]['bullet_mag']
+                self.reload = False
+            
         self.rot = (self.rot + self.rot_speed * self.game.dt) % 360
         self.image = pg.transform.rotate(self.game.player_img, self.rot)
         if self.damaged:
@@ -123,8 +140,7 @@ class Player(pg.sprite.Sprite):
                 self.image.fill((255, 255, 255, next(self.damage_alpha)), special_flags = pg.BLEND_RGBA_MULT)
             except:
                 self.damaged = False
-        if check_vicinity(self, self.game.chest):
-            self.health += 1
+
             
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
@@ -272,32 +288,88 @@ class Item(pg.sprite.Sprite):
         self.tween = tween.easeInOutSine
         self.step = 0
         self.dir = 1
+        self.spawn_time = pg.time.get_ticks()
+        self.pickup = False
     
     def update(self):
         # Bobbing motion
+        if pg.time.get_ticks() - self.spawn_time > ITEM_PICKUP_DELAY:
+            self.pickup = True
         offset = BOB_RANGE * (self.tween(self.step / BOB_RANGE) - 0.5)
-        self.rect.centery = self.pos.y + offset * self.dir
+        try:
+            self.rect.centery = self.pos.y + offset * self.dir
+        except:
+            pass
         self.step += BOB_SPEED
         if self.step > BOB_RANGE:
             self.step = 0
             self.dir *= -1
-
-class Chest(Player):
-    def __init__(self, game, x, y, id):
+    
+class Chest(pg.sprite.Sprite):
+    def __init__(self, game, pos, type):
         self.groups = game.all_sprites, game.chest
         pg.sprite.Sprite.__init__(self, self.groups)
-        self.id = id
+        self.type = type
         self.game = game
-        self.image = game.zombie_img.copy()
+        self.image = self.game.chest_images[0].copy()
         self.rect = self.image.get_rect()
-        self.x = x
-        self.y = y
-        self.rect.x = x
-        self.rect.y = y
-        self.hit_rect = CHEST_HIT_RECT.copy()
+        self.pos = pos
+        self.rect.center = pos
+        self.hit_rect = CHEST_HIT_RECT
         self.hit_rect.center = self.rect.center
-    
+        self.open = False
+        
 
+    def update(self):
+        self.open_chest()
+        if self.open:
+            self.image = self.game.chest_images[1]
+        else:
+            self.image = self.game.chest_images[0]
+    
+    def open_chest(self):
+        hits = pg.sprite.spritecollide(self, self.game.player_group, False)
+        if self.game.open:
+            for hit in hits:
+                if hit and not self.open:
+                    self.game.effects_sounds['chest_open'].play()
+                    if self.type == None:
+                        self.type = choice(ITEM_NAMES)
+                    self.drop = Item(self.game, self.rect.center, self.type)
+                    self.open = True
+        
+class Door(pg.sprite.Sprite):
+    def __init__(self, game, x, y, w, h):
+        self.groups = game.all_sprites, game.walls
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.game = game
+        self.image = self.game.door_images[0]
+        self.rect = self.image.get_rect().copy()
+        self.rect.topright = (x+w,y)
+        self.hit_rect = self.rect.copy()
+        self.old_rect = self.hit_rect
+        self.spawn_time = pg.time.get_ticks()
+        self.open = False
+    
+    
+    def update(self):
+        if self.game.open:
+            self.open_door()
+            self.spawn_time = pg.time.get_ticks()
+        if pg.time.get_ticks() - self.spawn_time > DOOR_CLOSE_DELAY:
+            self.open = False
+            self.rect = self.old_rect
+            self.hit_rect = self.old_rect            
+        
+    def open_door(self):
+        hits = pg.sprite.spritecollide(self, self.game.player_group, False)
+        if hits and not self.open:
+                self.rect = pg.Rect(0,0,0,0)
+                self.hit_rect = pg.Rect(0,0,0,0)
+                self.open = True
+                
+
+             
 #OLD Wall
 class Wall(pg.sprite.Sprite):
     def __init__(self, game, x, y):

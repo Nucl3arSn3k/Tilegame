@@ -1,14 +1,16 @@
 import pygame as pg
-import pygame_gui as p_gui
 import sys
 import csv
 from os import path
+
+from pygame.constants import MOUSEBUTTONUP
 from sprites import *
 from settings import *
 from tilemap import *
+from gui import *
 
 # HUD functions
-def draw_player_health(self, surf, x, y, pct):
+def draw_hud(self, surf, x, y, pct):
     hurt_rect = pg.Surface(self.screen.get_size()).convert_alpha()
     hurt_rect.fill((155, 0, 0, 20))
     self.tween = tween.easeInOutSine
@@ -19,6 +21,7 @@ def draw_player_health(self, surf, x, y, pct):
     fill = pct * BAR_LENGTH
     outline_rect = pg.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
     fill_rect = pg.Rect(x, y, fill, BAR_HEIGHT)
+    # draws health bar
     if pct > 0.6:
         col = GREEN
     elif pct > 0.3:
@@ -28,6 +31,28 @@ def draw_player_health(self, surf, x, y, pct):
         col = RED
         self.player.screen_flash(hurt_rect)
         self.screen.blit(hurt_rect, (0,0))
+    # draws gun
+    xoffset = WIDTH - 100
+    yoffset = 30
+    bullet_size = 'lg'
+    if self.player.weapon == 'shotgun':
+        draw_weapon = pg.transform.scale(self.item_images[self.player.weapon], (80, 40))  
+        self.screen.blit(draw_weapon, (xoffset - 10,60))     
+    elif self.player.weapon == 'uzi':
+        draw_weapon = pg.transform.scale(self.item_images[self.player.weapon], (100, 80))
+        self.screen.blit(draw_weapon, (xoffset - 10,45))
+    else:
+        draw_weapon = pg.transform.scale(self.item_images[self.player.weapon], (100, 100))
+        self.screen.blit(draw_weapon, (xoffset - 20,45))
+    # draws bullets
+    for x in range(0, self.player.clip):
+        if yoffset >= 230:
+            yoffset = 30
+            xoffset -= 25
+        self.screen.blit(self.bullet_images[bullet_size], (xoffset + 50, 100 + yoffset))
+        yoffset += 25
+    self.draw_text('Zombies: {}'.format(len(self.mobs)), self.hud_font, 
+                        30, WHITE, WIDTH - 10, 10, align = "ne")
     pg.draw.rect(surf, col, fill_rect)
     pg.draw.rect(surf, WHITE, outline_rect, 2)
 
@@ -36,7 +61,6 @@ class Game:
         pg.mixer.pre_init(44100, -16, 1, 2048)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        self.manager = p_gui.UIManager((WIDTH, HEIGHT), 'C:\\Users\\shado\\Documents\\Tutoring\\TileGame\\Tilegame\\res\\fonts\\theme.json')
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         pg.key.set_repeat(500,100)
@@ -67,7 +91,7 @@ class Game:
         self.screen.blit(text_surface, text_rect)
 
     def load_data(self):
-        game_folder = path.dirname(__file__)
+        game_folder = path.dirname('C:\\Users\\shado\\Documents\\Tutoring\\TileGame\\Tilegame\\')
         res_folder = path.join(game_folder,  'res')
         items_folder = path.join(res_folder,  'items')
         entity_folder = path.join(res_folder, 'entities')
@@ -101,7 +125,14 @@ class Game:
                     self.item_images[item] = pg.transform.scale(self.item_images[item], (54,48))
             except:
                 pass
-
+        self.chest_images = []
+        for img in CHEST_IMAGES:
+            self.chest_images.append(pg.image.load(path.join(entity_folder, img)).convert_alpha())
+        self.chest_images[0] = pg.transform.scale(self.chest_images[0], (40, 40))
+        self.chest_images[1] = pg.transform.scale(self.chest_images[1], (40, 40))
+        self.door_images = []
+        for img in DOOR_IMG:
+            self.door_images.append(pg.image.load(path.join(entity_folder, img)).convert_alpha())
         # Lighting effect
         self.fog = pg.Surface((WIDTH, HEIGHT))
         self.fog.fill(NIGHT_COLOR)
@@ -113,6 +144,7 @@ class Game:
         for type in EFFECTS_SOUNDS:
             self.effects_sounds[type] = pg.mixer.Sound(path.join(snd_folder, EFFECTS_SOUNDS[type]))
             self.effects_sounds[type].set_volume(0.05)
+        self.effects_sounds['chest_open'].set_volume(1)
         self.weapon_sounds = {}
         for weapon in WEAPON_SOUNDS:
             self.weapon_sounds[weapon] = []
@@ -143,12 +175,13 @@ class Game:
     def new(self):
         # initialize all variables and do all the setup for the game
         self.all_sprites = pg.sprite.LayeredUpdates()
-        self.player = pg.sprite.Group()
+        self.player_group = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.mobs = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         self.items = pg.sprite.Group()
         self.chest = pg.sprite.Group()
+        self.doors = pg.sprite.Group()
         self.map = TiledMap(path.join(self.map_folder, TILED_MAP_1))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
@@ -164,13 +197,16 @@ class Game:
             if tile_object.name in ['health', 'shotgun', 'uzi']:
                 Item(self, obj_center, tile_object.name)
             if tile_object.name == 'chest':
-                Chest(self, tile_object.x, tile_object.y, tile_object.id)
+                Chest(self, obj_center, tile_object.drop)
+            if tile_object.name == 'door':
+                Door(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
 
 
         self.camera = Camera(self.map.width, self.map.height)
         self.draw_debug = False
         self.paused = False
         self.night = False
+        self.open = False
         self.effects_sounds['level_start'].set_volume(0.1)
         self.effects_sounds['level_start'].play()
   
@@ -197,22 +233,24 @@ class Game:
         # define game over?
         if len(self.mobs) == 0:
             self.playing = False
+
         # player hits items
         hits = pg.sprite.spritecollide(self.player, self.items, False)
         for hit in hits:
-            if hit.type == 'health' and self.player.health < PLAYER_HEALTH:
-                hit.kill()
-                self.effects_sounds['health_up'].play()
-                self.player.add_health(HEALTH_PACK_AMOUNT)
-            for weapons in WEAPONS:
-                if hit.type == weapons:
+            if hit.pickup:
+                if hit.type == 'health' and self.player.health < PLAYER_HEALTH:
                     hit.kill()
-                    self.effects_sounds['gun_pickup'].play()
-                    self.player.weapon = weapons
-                    self.player.weapon_inventory.append(self.player.weapon)
+                    self.effects_sounds['health_up'].play()
+                    self.player.add_health(HEALTH_PACK_AMOUNT)
+                for weapons in WEAPONS:
+                    if hit.type == weapons:
+                        hit.kill()
+                        self.effects_sounds['gun_pickup'].play()
+                        self.player.weapon = weapons
+                        self.player.weapon_inventory.append(self.player.weapon)
+                        self.player.clip = WEAPONS[self.player.weapon]['bullet_mag']
         #mob hits player
         hits = pg.sprite.spritecollide(self.player, self.mobs, False, collide_hit_rect)
-        #if not self.player.damaged:
         for hit in hits:
             if random() < 0.7:
                 choice(self.player_hit_sounds).play()
@@ -265,7 +303,10 @@ class Game:
                 sprite.draw_health()
             self.screen.blit(sprite.image, self.camera.apply(sprite))
             if self.draw_debug:
-                pg.draw.rect(self.screen, RED, self.camera.apply_rect(sprite.hit_rect), 1)
+                try:
+                    pg.draw.rect(self.screen, RED, self.camera.apply_rect(sprite.hit_rect), 1)
+                except:
+                    pass
         if self.draw_debug:
             for wall in self.walls:
                 pg.draw.rect(self.screen, RED, self.camera.apply_rect(wall.rect), 1)
@@ -274,10 +315,10 @@ class Game:
             self.render_fog()
 
         # HUD functions
-        draw_player_health(self, self.screen, 10, 10, self.player.health / PLAYER_HEALTH)
-        self.draw_text('Zombies: {}'.format(len(self.mobs)), self.hud_font, 
-                        30, WHITE, WIDTH - 10, 10, align = "ne")
-
+        draw_hud(self, self.screen, 10, 10, self.player.health / PLAYER_HEALTH)
+        if check_vicinity(self.player, self.chest):
+            self.draw_text('Press E to open', self.hud_font, 
+                        30, WHITE, WIDTH / 2, HEIGHT / 2 + 50, align = "center")
         if self.paused:
             self.screen.blit(self.dim_screen, (0,0))
             self.draw_text("Paused", self.title_font, 105, RED, WIDTH / 2, HEIGHT / 2, align = "center")
@@ -285,6 +326,7 @@ class Game:
     
     def events(self):
         # catch all events here
+        self.open = False
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.save_data()
@@ -298,31 +340,24 @@ class Game:
                     self.paused = not self.paused 
                 if event.key == pg.K_n:
                     self.night = not self.night
+            if event.type == pg.KEYUP:
+                if event.key == pg.K_e and not self.open:
+                    self.open = True
     
     def show_start_screen(self):
         start = True
-        button_surf = pg.Surface((200, 100))
-        button_rect = pg.Rect(button_surf.get_rect())
-        button_rect.center = (WIDTH / 2, HEIGHT / 2+ 200)
-        start_button = p_gui.elements.UIButton(relative_rect=button_rect, text='START', manager=self.manager)
-        button_surf = pg.Surface((150, 75))
-        button_rect = pg.Rect(button_surf.get_rect())
-        button_rect.center = (WIDTH / 2, HEIGHT / 2 + 300)
-        save_button = p_gui.elements.UIButton(relative_rect=button_rect, text='SAVE', manager=self.manager)
+        start_button = Button(self, 'START', self.hud_font, 72, 200, 100, WIDTH / 2, HEIGHT / 2)
+        quit_button = Button(self, 'QUIT', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 100)
         while start:
             self.clock.tick(FPS)
+            start_button.update()
+            quit_button.update()
+            print(start_button.hovering)
             for event in pg.event.get():
-                if event.type == pg.QUIT:
+                if event.type == pg.QUIT or (event.type == pg.MOUSEBUTTONUP and quit_button.hovering):
                     self.quit()
-                if event.type == pg.USEREVENT:
-                    if event.user_type == p_gui.UI_BUTTON_PRESSED:
-                        if event.ui_element == start_button:
-                                start = False
-                        if event.ui_element == save_button:
-                                start = False
-                self.manager.process_events(event)
-            self.manager.update(FPS)
-            self.manager.draw_ui(self.screen)
+                if event.type == pg.MOUSEBUTTONUP and start_button.hovering:
+                    start = False
             pg.display.flip()
     
         
@@ -350,19 +385,14 @@ class Game:
                 if event.type == pg.KEYUP: 
                     waiting = False
 
-# create the game object
-g = Game()
-g.show_start_screen()
-while True:
-    g.new()
-    g.run()
-    g.show_go_screen()
+def main():
+    # create the game object
+    g = Game()
+    g.show_start_screen()
+    while True:
+        g.new()
+        g.run()
+        g.show_go_screen()
 
-# for row, tiles in enumerate(self.map.data):
-#     for col, tile in enumerate(tiles):
-#         if tile == '1':
-#             Wall(self, col, row)
-#         if tile == 'M':
-#             self.zombie = Mob(self, col, row)
-#         if tile == 'P':
-#             self.player = Player(self, col, row)
+if __name__ == "__main__":
+    main()

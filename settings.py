@@ -42,40 +42,56 @@ ZOMBIE_KNOCKBACK = 25
 AVOID_RADIUS = 50
 DETECT_RADIUS = 400
 
+# Misc png
+DOOR_IMG = ['door_closed.png', 'door_opened.png']
+DOOR_ROT_SPEED = 250
+DOOR_CLOSE_DELAY = 2000
+
 # Weapon settings
 BULLET_IMG = 'bullet.png'
 WEAPONS = {}
 WEAPONS['pistol'] = {'bullet_speed': 500, 
                      'bullet_lifetime': 1000,
                      'rate': 250, 
+                     'reload': 1.8,
                      'damage': 13,
                      'kickback': 200, 
                      'spread': 5,
                      'bullet_size': 'lg',
-                     'bullet_count': 1}
+                     'bullet_count': 1,
+                     'bullet_mag': 16}
 WEAPONS['shotgun'] = {'bullet_speed': 350, 
                      'bullet_lifetime': 500,
-                     'rate': 900, 
+                     'rate': 900,
+                     'reload': 2.5, 
                      'damage': 8,
                      'kickback': 300, 
                      'spread': 20,
                      'bullet_size': 'sm',
-                     'bullet_count': 14}
+                     'bullet_count': 14,
+                     'bullet_mag': 8}
 WEAPONS['uzi'] = {'bullet_speed': 850, 
                      'bullet_lifetime': 600,
                      'rate': 80, 
+                     'reload': 1,
                      'damage': 8,
                      'kickback': 100, 
                      'spread': 8,
                      'bullet_size': 'tn',
-                     'bullet_count': 1}
+                     'bullet_count': 1,
+                     'bullet_mag': 40}
 
 # Items
-ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png', 'uzi': 'obj_uzi.png'}
+ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png', 'uzi': 'obj_uzi.png', 'pistol': 'obj_pistol.png'}
+ITEM_NAMES = ['health', 'shotgun', 'uzi']
+ITEM_PICKUP_DELAY = 2000
 BOB_RANGE = 15
 BOB_SPEED = 0.4
 HEALTH_PACK_AMOUNT = 20
-CHEST_HIT_RECT = pg.Rect(0, 0, 60, 60)
+
+# Chests
+CHEST_IMAGES = ['chest_closed.png', 'chest_opened.png']
+CHEST_HIT_RECT = pg.Rect(0, 0, 40, 40)
 
 # Effects
 MUZZEL_FLASHES = ['whitePuff15.png', 'whitePuff16.png', 'whitePuff17.png', 'whitePuff18.png']
@@ -100,14 +116,17 @@ WEAPON_SOUNDS = {'pistol': ['pistol.wav'],
                  'uzi': ['pistol.wav']}
 EFFECTS_SOUNDS = {'level_start': 'level_start.wav',
                   'health_up': 'health_pack.wav',
-                  'gun_pickup': 'gun_pickup.wav'}
+                  'gun_pickup': 'gun_pickup.wav',
+                  'chest_open': 'chest_open.wav'}
 # Layers
-WALL_LAYER = 1
-PLAYER_LAYER = 2
-BULLET_LAYER = 3
-MOB_LAYER = 2
-EFFECTS_LAYER = 4
-ITEMS_LAYER = 1
+UI_LAYER = 1
+WALL_LAYER = 2
+ITEMS_LAYER = 2
+PLAYER_LAYER = 3
+MOB_LAYER = 3
+BULLET_LAYER = 4
+EFFECTS_LAYER = 5
+
 
 # Map List
 TILED_MAP_1 = 'tilemap.tmx'
