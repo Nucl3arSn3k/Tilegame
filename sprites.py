@@ -77,7 +77,7 @@ class Player(pg.sprite.Sprite):
             self.shoot()
         
         if keys[pg.K_TAB]:
-            if not self.equipped:
+            if not self.equipped and self.weapon !=  self.weapon_inventory[self.idx]:
                 self.weapon = self.weapon_inventory[self.idx]
                 self.clip = WEAPONS[self.weapon]['bullet_mag']
                 self.idx = (self.idx + 1) % len(self.weapon_inventory)
@@ -143,7 +143,7 @@ class Player(pg.sprite.Sprite):
 
             
         self.rect = self.image.get_rect()
-        self.rect.center = self.pos
+        self.rect.center = self.pos 
         self.pos += self.vel * self.game.dt
         self.hit_rect.centerx = self.pos.x
         
@@ -275,8 +275,9 @@ class MuzzleFlash(pg.sprite.Sprite):
             self.kill()
 
 class Item(pg.sprite.Sprite):
-    def __init__(self, game, pos, type):
+    def __init__(self, game, pos, type, id):
         self._layer = ITEMS_LAYER
+        self.id = id
         self.groups = game.all_sprites, game.items
         pg.sprite.Sprite.__init__(self, self.groups)
         self.game = game
@@ -296,18 +297,16 @@ class Item(pg.sprite.Sprite):
         if pg.time.get_ticks() - self.spawn_time > ITEM_PICKUP_DELAY:
             self.pickup = True
         offset = BOB_RANGE * (self.tween(self.step / BOB_RANGE) - 0.5)
-        try:
-            self.rect.centery = self.pos.y + offset * self.dir
-        except:
-            pass
+        self.rect.centery = self.pos.y + offset * self.dir
         self.step += BOB_SPEED
         if self.step > BOB_RANGE:
             self.step = 0
             self.dir *= -1
     
 class Chest(pg.sprite.Sprite):
-    def __init__(self, game, pos, type):
-        self.groups = game.all_sprites, game.chest
+    def __init__(self, game, pos, type, id):
+        self.groups = game.all_sprites, game.chests
+        self.id = id
         pg.sprite.Sprite.__init__(self, self.groups)
         self.type = type
         self.game = game
@@ -335,7 +334,7 @@ class Chest(pg.sprite.Sprite):
                     self.game.effects_sounds['chest_open'].play()
                     if self.type == None:
                         self.type = choice(ITEM_NAMES)
-                    self.drop = Item(self.game, self.rect.center, self.type)
+                    self.drop = Item(self.game, vec(self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2), self.type, randint(1000,999999))
                     self.open = True
         
 class Door(pg.sprite.Sprite):

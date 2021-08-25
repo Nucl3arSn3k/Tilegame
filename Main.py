@@ -1,13 +1,12 @@
 import pygame as pg
 import sys
-import csv
+import pickle
 from os import path
-
-from pygame.constants import MOUSEBUTTONUP
 from sprites import *
 from settings import *
 from tilemap import *
 from gui import *
+from save import *
 
 # HUD functions
 def draw_hud(self, surf, x, y, pct):
@@ -91,35 +90,36 @@ class Game:
         self.screen.blit(text_surface, text_rect)
 
     def load_data(self):
-        game_folder = path.dirname('C:\\Users\\shado\\Documents\\Tutoring\\TileGame\\Tilegame\\')
-        res_folder = path.join(game_folder,  'res')
-        items_folder = path.join(res_folder,  'items')
-        entity_folder = path.join(res_folder, 'entities')
-        weapon_folder = path.join(res_folder, 'weapons')
-        music_folder = path.join(res_folder, 'music')
-        snd_folder = path.join(res_folder, 'snd')
-        effects_folder = path.join(res_folder, 'effects')
-        fonts_folder = path.join(res_folder, 'fonts')
-        self.map_folder = path.join(res_folder, 'maps')
-        self.map_save = path.join(self.map_folder, 'save.csv')
-        self.title_font = path.join(fonts_folder, ZOMBIE_FONT)
-        self.hud_font = path.join(fonts_folder, IMPACTED_FONT)
+        game_folder = getattr(sys, '_MEIPASS', path.abspath(path.dirname(__file__)))
+        #game_folder = path.dirname('C:\\Users\\shado\\Documents\\Tutoring\\TileGame\\Tilegame\\')
+        res_folder = path.abspath(path.join(game_folder,  'res'))
+        items_folder = path.abspath(path.join(res_folder,  'items'))
+        entity_folder = path.abspath(path.join(res_folder, 'entities'))
+        weapon_folder = path.abspath(path.join(res_folder, 'weapons'))
+        music_folder = path.abspath(path.join(res_folder, 'music'))
+        snd_folder = path.abspath(path.join(res_folder, 'snd'))
+        effects_folder = path.abspath(path.join(res_folder, 'effects'))
+        fonts_folder = path.abspath(path.join(res_folder, 'fonts'))
+        self.map_folder = path.abspath(path.join(res_folder, 'maps'))
+        self.map_save = path.abspath(path.join(self.map_folder, 'save.pickle'))
+        self.title_font = path.abspath(path.join(fonts_folder, ZOMBIE_FONT))
+        self.hud_font = path.abspath(path.join(fonts_folder, IMPACTED_FONT))
         self.dim_screen = pg.Surface(self.screen.get_size()).convert_alpha()
         self.dim_screen.fill((0, 0, 0, 180))
-        self.player_img = pg.image.load(path.join(entity_folder, PLAYER_IMG)).convert_alpha()
+        self.player_img = pg.image.load(path.abspath(path.join(entity_folder, PLAYER_IMG))).convert_alpha()
         self.bullet_images = {}
-        self.bullet_images['lg'] = pg.image.load(path.join(weapon_folder, BULLET_IMG)).convert_alpha()
+        self.bullet_images['lg'] = pg.image.load(path.abspath(path.join(weapon_folder, BULLET_IMG))).convert_alpha()
         self.bullet_images['sm'] = pg.transform.scale(self.bullet_images['lg'], (10,10))
         self.bullet_images['tn'] = pg.transform.scale(self.bullet_images['lg'], (7,7))
-        self.zombie_img = pg.image.load(path.join(entity_folder, ZOMBIE_IMAGE)).convert_alpha()
-        self.splat = pg.image.load(path.join(effects_folder, SPLAT)).convert_alpha()
+        self.zombie_img = pg.image.load(path.abspath(path.join(entity_folder, ZOMBIE_IMAGE))).convert_alpha()
+        self.splat = pg.image.load(path.abspath(path.join(effects_folder, SPLAT))).convert_alpha()
         self.splat = pg.transform.scale(self.splat, (64, 64))
         self.gun_flashes = []
         for img in MUZZEL_FLASHES:
-            self.gun_flashes.append(pg.image.load(path.join(effects_folder, img)).convert_alpha())
+            self.gun_flashes.append(pg.image.load(path.abspath(path.join(effects_folder, img))).convert_alpha())
         self.item_images = {}
         for item in ITEM_IMAGES:
-            self.item_images[item] = pg.image.load(path.join(items_folder, ITEM_IMAGES[item])).convert_alpha()
+            self.item_images[item] = pg.image.load(path.abspath(path.join(items_folder, ITEM_IMAGES[item]))).convert_alpha()
             try:
                 if self.item_images[item] == self.item_images['uzi']:
                     self.item_images[item] = pg.transform.scale(self.item_images[item], (54,48))
@@ -127,47 +127,47 @@ class Game:
                 pass
         self.chest_images = []
         for img in CHEST_IMAGES:
-            self.chest_images.append(pg.image.load(path.join(entity_folder, img)).convert_alpha())
+            self.chest_images.append(pg.image.load(path.abspath(path.join(entity_folder, img))).convert_alpha())
         self.chest_images[0] = pg.transform.scale(self.chest_images[0], (40, 40))
         self.chest_images[1] = pg.transform.scale(self.chest_images[1], (40, 40))
         self.door_images = []
         for img in DOOR_IMG:
-            self.door_images.append(pg.image.load(path.join(entity_folder, img)).convert_alpha())
+            self.door_images.append(pg.image.load(path.abspath(path.join(entity_folder, img))).convert_alpha())
         # Lighting effect
         self.fog = pg.Surface((WIDTH, HEIGHT))
         self.fog.fill(NIGHT_COLOR)
-        self.light_mask = pg.image.load(path.join(effects_folder, LIGHT_MASK)).convert_alpha()
+        self.light_mask = pg.image.load(path.abspath(path.join(effects_folder, LIGHT_MASK))).convert_alpha()
         self.light_mask = pg.transform.scale(self.light_mask, LIGHT_RADIUS)
         self.light_rect = self.light_mask.get_rect()
         # Sound loading
         self.effects_sounds = {}
         for type in EFFECTS_SOUNDS:
-            self.effects_sounds[type] = pg.mixer.Sound(path.join(snd_folder, EFFECTS_SOUNDS[type]))
+            self.effects_sounds[type] = pg.mixer.Sound(path.abspath(path.join(snd_folder, EFFECTS_SOUNDS[type])))
             self.effects_sounds[type].set_volume(0.05)
         self.effects_sounds['chest_open'].set_volume(1)
         self.weapon_sounds = {}
         for weapon in WEAPON_SOUNDS:
             self.weapon_sounds[weapon] = []
             for snd in WEAPON_SOUNDS[weapon]:
-                s = pg.mixer.Sound(path.join(snd_folder, snd))
+                s = pg.mixer.Sound(path.abspath(path.join(snd_folder, snd)))
                 s.set_volume(0.05)
                 self.weapon_sounds[weapon].append(s)
         self.zombie_moan_sounds = []
         for snd in ZOMBIE_MOAN_SOUNDS:
-            s = pg.mixer.Sound(path.join(snd_folder, snd))
+            s = pg.mixer.Sound(path.abspath(path.join(snd_folder, snd)))
             s.set_volume(0.06)
             self.zombie_moan_sounds.append(s)
         self.player_hit_sounds = []
         for snd in PLAYER_HIT_SOUNDS:
-            s = pg.mixer.Sound(path.join(snd_folder, snd))
+            s = pg.mixer.Sound(path.abspath(path.join(snd_folder, snd)))
             s.set_volume(0.2)
             self.player_hit_sounds.append(s)
         self.zombie_hit_sounds = []
         for snd in ZOMBIE_HIT_SOUNDS:
-            s = pg.mixer.Sound(path.join(snd_folder, snd))
+            s = pg.mixer.Sound(path.abspath(path.join(snd_folder, snd)))
             s.set_volume(0.2)
             self.zombie_hit_sounds.append(s)
-        pg.mixer.music.load(path.join(music_folder, BG_MUSIC))
+        pg.mixer.music.load(path.abspath(path.join(music_folder, BG_MUSIC)))
         pg.mixer.music.set_volume(0.3)
             
 
@@ -180,9 +180,9 @@ class Game:
         self.mobs = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         self.items = pg.sprite.Group()
-        self.chest = pg.sprite.Group()
+        self.chests = pg.sprite.Group()
         self.doors = pg.sprite.Group()
-        self.map = TiledMap(path.join(self.map_folder, TILED_MAP_1))
+        self.map = TiledMap(path.abspath(path.join(self.map_folder, TILED_MAP_1)))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
 
@@ -195,9 +195,9 @@ class Game:
             if tile_object.name == 'wall':
                 Obstacle(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
             if tile_object.name in ['health', 'shotgun', 'uzi']:
-                Item(self, obj_center, tile_object.name)
+                Item(self, obj_center, tile_object.name, tile_object.id)
             if tile_object.name == 'chest':
-                Chest(self, obj_center, tile_object.drop)
+                Chest(self, obj_center, tile_object.drop, tile_object.id)
             if tile_object.name == 'door':
                 Door(self, tile_object.x, tile_object.y, tile_object.width, tile_object.height)
 
@@ -229,11 +229,9 @@ class Game:
         # update portion of the game loop
         self.all_sprites.update()
         self.camera.update(self.player)
-        self.write_data()
         # define game over?
         if len(self.mobs) == 0:
             self.playing = False
-
         # player hits items
         hits = pg.sprite.spritecollide(self.player, self.items, False)
         for hit in hits:
@@ -268,17 +266,6 @@ class Game:
             for bullet in hits[mob]:
                 mob.health -= bullet.damage
             mob.vel = vec(0, 0)
-
-    def write_data(self):
-        self.data = ''
-        for sprite in self.all_sprites:
-            if isinstance(sprite, Mob):
-                self.data += str(sprite.id) + str(sprite.health) + str(sprite.pos.x) + str(sprite.pos.y) + '\n'
-    
-    def save_data(self):
-        with open(self.map_save, mode = 'w') as savefile:
-            savefile = csv.writer(savefile, delimiter = ' ', quotechar = '"', quoting = csv.QUOTE_MINIMAL)
-            savefile.writerow(self.data)
 
     def draw_grid(self):
         for x in range(0, WIDTH, TILE_SIZE):
@@ -316,7 +303,7 @@ class Game:
 
         # HUD functions
         draw_hud(self, self.screen, 10, 10, self.player.health / PLAYER_HEALTH)
-        if check_vicinity(self.player, self.chest):
+        if check_vicinity(self.player, self.chests):
             self.draw_text('Press E to open', self.hud_font, 
                         30, WHITE, WIDTH / 2, HEIGHT / 2 + 50, align = "center")
         if self.paused:
@@ -329,7 +316,6 @@ class Game:
         self.open = False
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                self.save_data()
                 self.quit()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
@@ -343,23 +329,31 @@ class Game:
             if event.type == pg.KEYUP:
                 if event.key == pg.K_e and not self.open:
                     self.open = True
-    
+                if event.key == pg.K_m:
+                    write_data(self)
+                    print('data is saved')
+                if event.key == pg.K_p:
+                    print(self.player.weapon_inventory)
+                
     def show_start_screen(self):
         start = True
         start_button = Button(self, 'START', self.hud_font, 72, 200, 100, WIDTH / 2, HEIGHT / 2)
-        quit_button = Button(self, 'QUIT', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 100)
+        load_button = Button(self, 'load', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 100)
+        quit_button = Button(self, 'QUIT', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 200)
         while start:
             self.clock.tick(FPS)
             start_button.update()
             quit_button.update()
-            print(start_button.hovering)
+            load_button.update()
             for event in pg.event.get():
                 if event.type == pg.QUIT or (event.type == pg.MOUSEBUTTONUP and quit_button.hovering):
                     self.quit()
                 if event.type == pg.MOUSEBUTTONUP and start_button.hovering:
                     start = False
+                if event.type == pg.MOUSEBUTTONUP and load_button.hovering:
+                    load_game(self)
+                    start = False
             pg.display.flip()
-    
         
 
     def show_go_screen(self):
@@ -388,9 +382,9 @@ class Game:
 def main():
     # create the game object
     g = Game()
-    g.show_start_screen()
+    g.new()
     while True:
-        g.new()
+        g.show_start_screen()
         g.run()
         g.show_go_screen()
 
