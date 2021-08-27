@@ -55,6 +55,7 @@ def draw_hud(self, surf, x, y, pct):
     pg.draw.rect(surf, col, fill_rect)
     pg.draw.rect(surf, WHITE, outline_rect, 2)
 
+
 class Game:
     def __init__(self):
         pg.mixer.pre_init(44100, -16, 1, 2048)
@@ -102,6 +103,7 @@ class Game:
         fonts_folder = path.abspath(path.join(res_folder, 'fonts'))
         self.map_folder = path.abspath(path.join(res_folder, 'maps'))
         self.map_save = path.abspath(path.join(self.map_folder, 'save.pickle'))
+        self.map_save_dead = path.abspath(path.join(self.map_folder, 'dead.pickle'))
         self.title_font = path.abspath(path.join(fonts_folder, ZOMBIE_FONT))
         self.hud_font = path.abspath(path.join(fonts_folder, IMPACTED_FONT))
         self.dim_screen = pg.Surface(self.screen.get_size()).convert_alpha()
@@ -185,6 +187,7 @@ class Game:
         self.map = TiledMap(path.abspath(path.join(self.map_folder, TILED_MAP_1)))
         self.map_img = self.map.make_map()
         self.map_rect = self.map_img.get_rect()
+        self.item_pickup_data = ''
 
         for tile_object in self.map.tmxdata.objects:
             obj_center = vec(tile_object.x + tile_object.width / 2, tile_object.y + tile_object.height / 2)
@@ -225,6 +228,10 @@ class Game:
         pg.quit()
         sys.exit()
 
+    def get_item_pickup_data(self):
+        print(self.item_pickup_data)
+        return self.item_pickup_data
+
     def update(self):
         # update portion of the game loop
         self.all_sprites.update()
@@ -236,8 +243,11 @@ class Game:
         hits = pg.sprite.spritecollide(self.player, self.items, False)
         for hit in hits:
             if hit.pickup:
+                self.item_pickup_data += 'D,' + str(hit.id) + ',False,\n' 
+                print(self.item_pickup_data)
                 if hit.type == 'health' and self.player.health < PLAYER_HEALTH:
-                    hit.kill()
+                    if hit.add:
+                        hit.kill()
                     self.effects_sounds['health_up'].play()
                     self.player.add_health(HEALTH_PACK_AMOUNT)
                 for weapons in WEAPONS:
@@ -247,6 +257,7 @@ class Game:
                         self.player.weapon = weapons
                         self.player.weapon_inventory.append(self.player.weapon)
                         self.player.clip = WEAPONS[self.player.weapon]['bullet_mag']
+                        self.player.weapon_inventory = list(set(self.player.weapon_inventory))
         #mob hits player
         hits = pg.sprite.spritecollide(self.player, self.mobs, False, collide_hit_rect)
         for hit in hits:
@@ -256,6 +267,9 @@ class Game:
             hit.vel = vec(ZOMBIE_KNOCKBACK, 0).rotate(-hits[0].rot)
             if self.player.health <= 0:
                 self.playing = False
+                self.player.health = PLAYER_HEALTH
+                self.player.pos = 836,442
+                
         if hits:
             self.player.hit()
             self.player.pos += vec(ZOMBIE_KNOCKBACK, 0).rotate(-hits[0].rot)
@@ -330,15 +344,16 @@ class Game:
                 if event.key == pg.K_e and not self.open:
                     self.open = True
                 if event.key == pg.K_m:
-                    write_data(self)
+                    write_data(self, Game)
                     print('data is saved')
                 if event.key == pg.K_p:
                     print(self.player.weapon_inventory)
                 
     def show_start_screen(self):
         start = True
+        self.load_dead = False
         start_button = Button(self, 'START', self.hud_font, 72, 200, 100, WIDTH / 2, HEIGHT / 2)
-        load_button = Button(self, 'load', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 100)
+        load_button = Button(self, 'LOAD', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 100)
         quit_button = Button(self, 'QUIT', self.hud_font, 40, 80, 50, WIDTH / 2, HEIGHT / 2 + 200)
         while start:
             self.clock.tick(FPS)
@@ -351,10 +366,13 @@ class Game:
                 if event.type == pg.MOUSEBUTTONUP and start_button.hovering:
                     start = False
                 if event.type == pg.MOUSEBUTTONUP and load_button.hovering:
-                    load_game(self)
                     start = False
+                    load_game(self, Game)
+                    self.load = True
             pg.display.flip()
         
+    def load_game_bool(self):
+        return self.load_dead
 
     def show_go_screen(self):
         self.screen.fill(BLACK)
@@ -383,8 +401,8 @@ def main():
     # create the game object
     g = Game()
     g.new()
+    g.show_start_screen()
     while True:
-        g.show_start_screen()
         g.run()
         g.show_go_screen()
 

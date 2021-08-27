@@ -1,12 +1,13 @@
 import pygame as pg
 import pytweening as tween
 import time
+import pickle
 from itertools import chain
 from random import uniform, choice, randint, random
 from settings import *
 from tilemap import collide_hit_rect
 vec = pg.math.Vector2
-
+dead_data = ''
 def collide_with_walls(sprite, group, dir):
     if dir == 'x':
         hits = pg.sprite.spritecollide(sprite, group, False, collide_hit_rect)
@@ -30,6 +31,8 @@ def collide_with_walls(sprite, group, dir):
 def check_vicinity(sprite, group):
     return pg.sprite.spritecollide(sprite, group, False, collide_hit_rect)
 
+def get_dead_data():
+    return dead_data
 
 class Player(pg.sprite.Sprite):
     def __init__(self, game, x, y):
@@ -77,7 +80,7 @@ class Player(pg.sprite.Sprite):
             self.shoot()
         
         if keys[pg.K_TAB]:
-            if not self.equipped and self.weapon !=  self.weapon_inventory[self.idx]:
+            if not self.equipped:
                 self.weapon = self.weapon_inventory[self.idx]
                 self.clip = WEAPONS[self.weapon]['bullet_mag']
                 self.idx = (self.idx + 1) % len(self.weapon_inventory)
@@ -125,7 +128,6 @@ class Player(pg.sprite.Sprite):
 
     def update(self):
         self.get_keys()
-        
         if self.clip <= 0:
             self.reload = True
             print((time.time() - self.start))
@@ -148,8 +150,10 @@ class Player(pg.sprite.Sprite):
         self.hit_rect.centerx = self.pos.x
         
         collide_with_walls(self, self.game.walls, 'x')
+        collide_with_walls(self, self.game.chests, 'x')
         self.hit_rect.centery = self.pos.y
         collide_with_walls(self, self.game.walls, 'y')
+        collide_with_walls(self, self.game.chests, 'y')
         self.rect.center = self.hit_rect.center
 
 class Mob(pg.sprite.Sprite):
@@ -207,9 +211,12 @@ class Mob(pg.sprite.Sprite):
             self.rect.center = self.hit_rect.center
         if self.health <= 0:
             choice(self.game.zombie_hit_sounds).play()
+            global dead_data
+            dead_data += 'D,' + str(self.id) + ',False,\n' 
             self.game.map_img.blit(self.game.splat, self.pos - vec(32, 32))
             self.kill()
-            
+
+        
 
     def draw_health(self):
         if self.health > (int)(ZOMBIE_HEALTH * 6/10):
@@ -222,6 +229,7 @@ class Mob(pg.sprite.Sprite):
         self.health_bar = pg.Rect(0, 0, width, 7)
         if self.health < ZOMBIE_HEALTH:
             pg.draw.rect(self.image, col, self.health_bar)
+
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self, game, pos, dir, damage):
@@ -316,12 +324,12 @@ class Chest(pg.sprite.Sprite):
         self.rect.center = pos
         self.hit_rect = CHEST_HIT_RECT
         self.hit_rect.center = self.rect.center
-        self.open = False
+        self.chest_open = False
         
 
     def update(self):
         self.open_chest()
-        if self.open:
+        if self.chest_open:
             self.image = self.game.chest_images[1]
         else:
             self.image = self.game.chest_images[0]
@@ -330,12 +338,12 @@ class Chest(pg.sprite.Sprite):
         hits = pg.sprite.spritecollide(self, self.game.player_group, False)
         if self.game.open:
             for hit in hits:
-                if hit and not self.open:
+                if hit and not self.chest_open:
                     self.game.effects_sounds['chest_open'].play()
                     if self.type == None:
                         self.type = choice(ITEM_NAMES)
                     self.drop = Item(self.game, vec(self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2), self.type, randint(1000,999999))
-                    self.open = True
+                    self.chest_open = True
         
 class Door(pg.sprite.Sprite):
     def __init__(self, game, x, y, w, h):

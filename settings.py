@@ -24,6 +24,7 @@ GRID_WIDTH = WIDTH / TILE_SIZE
 GRID_HEIGHT = HEIGHT / TILE_SIZE
 
 # Player settings
+PLAYER_SPAWN_POS = vec(836,442)
 PLAYER_HEALTH = 100
 PLAYER_SPEED = 300.0
 PLAYER_ROT_SPEED = 250.0
@@ -44,8 +45,7 @@ DETECT_RADIUS = 400
 
 # Misc png
 DOOR_IMG = ['door_closed.png', 'door_opened.png']
-DOOR_ROT_SPEED = 250
-DOOR_CLOSE_DELAY = 2000
+DOOR_CLOSE_DELAY = 1500
 
 # Weapon settings
 BULLET_IMG = 'bullet.png'
@@ -84,7 +84,7 @@ WEAPONS['uzi'] = {'bullet_speed': 850,
 # Items
 ITEM_IMAGES = {'health': 'health_pack.png', 'shotgun': 'obj_shotgun.png', 'uzi': 'obj_uzi.png', 'pistol': 'obj_pistol.png'}
 ITEM_NAMES = ['health', 'shotgun', 'uzi']
-ITEM_PICKUP_DELAY = 2000
+ITEM_PICKUP_DELAY = 500
 BOB_RANGE = 15
 BOB_SPEED = 0.4
 HEALTH_PACK_AMOUNT = 20

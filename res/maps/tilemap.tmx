@@ -132,9 +132,6 @@
   </object>
   <object id="108" name="door" x="512" y="832" width="64" height="64"/>
   <object id="113" name="door" x="704" y="704" width="64" height="64"/>
-  <object id="114" name="door" x="513" y="1089" width="64" height="64"/>
-  <object id="115" name="door" x="576" y="960" width="64" height="64"/>
-  <object id="116" name="door" x="640" y="960" width="64" height="64"/>
  </objectgroup>
  <layer id="3" name="walls" width="50" height="30">
   <data encoding="csv">
