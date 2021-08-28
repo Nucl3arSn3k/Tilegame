@@ -22,18 +22,27 @@ def write_data(self, game):
             self.data += game.get_item_pickup_data(self)
         
             pickle.dump(self.data, savefile)
-        
-        with open(self.map_save_dead, 'wb') as deadfile: 
-            pickle.dump(get_dead_data() + game.get_item_pickup_data(self), deadfile)
-    
+            
+def write_load_data(self, game):
+    temp_dead_data = ''
+    if game.load_game_bool(self):
+        with open(self.map_save_dead, 'rb') as savefile:
+            temp_dead_data = pickle.load(savefile)
+
+    with open(self.map_save_dead, 'wb') as deadfile: 
+        pickle.dump(temp_dead_data + get_dead_data() + game.get_item_pickup_data(self), deadfile)
+
 def load_dead(self):
-    self.dead = ''
-    with open(self.map_save, 'rb') as savefile:
-        self.dead = pickle.load(savefile)
+    dead = ''
+    with open(self.map_save_dead, 'rb') as savefile:
+        dead = pickle.load(savefile)
+    print(dead)
+    return dead
 
 def load_game(self, game):
         self.info = ''
         self.temp = ''
+        dead_data = ''
         load_inventory_num = False
         weapon_count = 0
         player = False
@@ -160,7 +169,6 @@ def load_game(self, game):
             if self.info[element] == 'C':
                 chest = True            
             if dead:
-                
                 if self.info[element] != ',':
                     if self.info[element] != '[' and self.info[element] != ']' and self.info[element] != "'" and self.info[element] != " " and self.info[element] != "\n" and self.info[element] != "Z":
                         self.temp += self.info[element]
@@ -179,17 +187,24 @@ def load_game(self, game):
                 dead = True
         
         if game.load_game_bool(self):
-            for element in range(0, len(self.dead)):
-                if self.dead[element] != ',':
-                    if self.dead[element] != '[' and self.dead[element] != ']' and self.dead[element] != "'" and self.dead[element] != " " and self.dead[element] != "\n" and self.dead[element] != "Z":
-                        self.temp += self.dead[element]
-                else:
-                    count += 1
-                    if count == 2:
-                        id = ((int)(self.temp))
-                        self.temp = ''
-                        for sprite in self.all_sprites:
-                            if isinstance(sprite, Mob) or isinstance(sprite, Item):
-                                if sprite.id == id:
-                                    sprite.kill()
-                        count = 0
+            count = 0
+            dead_data = str(load_dead(self))
+            for element in range(0, len(dead_data)):
+                if dead:
+                    print(dead)
+                    if dead_data[element] != ',':
+                        if dead_data[element] != '[' and dead_data[element] != ']' and dead_data[element] != "'" and dead_data[element] != " " and dead_data[element] != "\n" and dead_data[element] != "Z":
+                            self.temp += dead_data[element]
+                    else:
+                        count += 1
+                        if count == 2:
+                            id = ((int)(self.temp))
+                            self.temp = ''
+                            for sprite in self.all_sprites:
+                                if isinstance(sprite, Mob) or isinstance(sprite, Item):
+                                    if sprite.id == id:
+                                        sprite.kill()
+                            count = 0
+                            dead = False
+                if dead_data[element] == 'D':
+                    dead = True

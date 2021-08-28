@@ -229,7 +229,6 @@ class Game:
         sys.exit()
 
     def get_item_pickup_data(self):
-        print(self.item_pickup_data)
         return self.item_pickup_data
 
     def update(self):
@@ -244,7 +243,6 @@ class Game:
         for hit in hits:
             if hit.pickup:
                 self.item_pickup_data += 'D,' + str(hit.id) + ',False,\n' 
-                print(self.item_pickup_data)
                 if hit.type == 'health' and self.player.health < PLAYER_HEALTH:
                     if hit.add:
                         hit.kill()
@@ -276,7 +274,6 @@ class Game:
 
         hits = pg.sprite.groupcollide(self.mobs, self.bullets, False, True)
         for mob in hits:
-            #hit.health -= WEAPONS[self.player.weapon]['damage'] * len(hits[hit])
             for bullet in hits[mob]:
                 mob.health -= bullet.damage
             mob.vel = vec(0, 0)
@@ -345,9 +342,9 @@ class Game:
                     self.open = True
                 if event.key == pg.K_m:
                     write_data(self, Game)
+                    write_load_data(self, Game)
                     print('data is saved')
-                if event.key == pg.K_p:
-                    print(self.player.weapon_inventory)
+                    
                 
     def show_start_screen(self):
         start = True
@@ -367,8 +364,9 @@ class Game:
                     start = False
                 if event.type == pg.MOUSEBUTTONUP and load_button.hovering:
                     start = False
+                    self.load_dead = True
                     load_game(self, Game)
-                    self.load = True
+                    
             pg.display.flip()
         
     def load_game_bool(self):
